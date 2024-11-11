@@ -1,8 +1,9 @@
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Thư viện nhận diện văn bản từ hình ảnh
 import 'package:image_cropper/image_cropper.dart';
 
 Future<void> main() async {
@@ -52,16 +53,9 @@ class _HomePageState extends State<HomePage> {
         return;
       }
       setState(() {});
-    }).catchError((Object e) {
-      if (e is CameraException) {
-        switch (e.code) {
-          case 'CameraAccessDenied':
-            // Handle access errors here.
-            break;
-          default:
-            // Handle other errors here.
-            break;
-        }
+    }).catchError((e) {
+      if (kDebugMode) {
+        print(e);
       }
     });
   }
@@ -72,6 +66,7 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  // Hàm lấy nét
   Future<void> _setFocusPoint(
       TapDownDetails details, BoxConstraints constraints) async {
     final offsetX = details.localPosition.dx / constraints.maxWidth;
@@ -79,24 +74,27 @@ class _HomePageState extends State<HomePage> {
     final point = Offset(offsetX, offsetY);
 
     try {
-      await controller.setFocusPoint(point); // Đặt điểm lấy nét tại vị trí nhấn
+      await controller.setFocusPoint(point);
     } catch (e) {
       Fluttertoast.showToast(msg: e.toString());
     }
   }
 
+  // Bật/tắt đèn flash
   Future<void> _toggleFlash() async {
     try {
       if (_isFlashOn) {
-        await controller.setFlashMode(FlashMode.off); // Tắt đèn flash
+        await controller.setFlashMode(FlashMode.off);
       } else {
-        await controller.setFlashMode(FlashMode.torch); // Bật đèn flash
+        await controller.setFlashMode(FlashMode.torch);
       }
       setState(() {
-        _isFlashOn = !_isFlashOn; // Thay đổi trạng thái đèn flash
+        _isFlashOn = !_isFlashOn;
       });
     } catch (e) {
-      print("Không thể bật/tắt đèn flash: $e");
+      if (kDebugMode) {
+        print(e);
+      }
     }
   }
 
@@ -124,19 +122,20 @@ class _HomePageState extends State<HomePage> {
           ),
           IconButton(
             icon: Icon(
-              _isFlashOn
-                  ? Icons.flash_on
-                  : Icons.flash_off, // Biểu tượng thay đổi theo trạng thái
+              _isFlashOn ? Icons.flash_on : Icons.flash_off,
               color: Colors.white,
               size: 30,
             ),
-            onPressed: _toggleFlash, // Gọi hàm bật/tắt đèn flash
+            onPressed: _toggleFlash,
           ),
-          Slider(
-            value: _brightness,
-            onChanged: _updateBrightness,
-            min: -1.0,
-            max: 2.0,
+          Padding(
+            padding: const EdgeInsets.only(top: 500),
+            child: Slider(
+              value: _brightness,
+              onChanged: _updateBrightness,
+              min: -1.0,
+              max: 2.0,
+            ),
           ),
           Align(
             alignment: Alignment.bottomCenter,
@@ -216,6 +215,7 @@ class _ResultPageState extends State<ResultPage> {
 
   String recognizedText = "Loading...";
 
+  // Hàm xử lý ảnh --> văn bản
   void performOCR(InputImage inputImage) async {
     final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
     final RecognizedText recognizedText =
